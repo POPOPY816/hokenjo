@@ -299,10 +299,10 @@
 
   // 部品の種類を名前から推測する
   const GUESS = [
-    ["handwash", /手洗/], ["toilet", /便所|トイレ/], ["entrance", /玄関|入口|出入口|出口/], ["hq", /本部|受付|案内/],
+    ["handwash", /手洗|タンク/], ["toilet", /便所|トイレ/], ["entrance", /玄関|入口|出入口|出口/], ["hq", /本部|受付|案内/],
     ["eating", /休憩|飲食|イートイン|テーブル/], ["stage", /舞台|ステージ|イベントコーナー|会場$/], ["trash", /ゴミ|ごみ/],
-    ["heat", /コンロ|鉄板|釜|フライヤー|グリル/], ["cooler", /冷蔵|冷凍|クーラー/], ["worktable", /作業台|加工台|調理台/],
-    ["storage", /棚|収納|倉庫|資材/], ["booth", /販売|コーナー|ブース|店/],
+    ["heat", /コンロ|鉄板|釜|フライヤー|グリル|プレート|焼き台/], ["cooler", /冷蔵|冷凍|クーラー/], ["worktable", /作業台|加工台|調理台/],
+    ["storage", /棚|収納|倉庫|資材/], ["counter", /会計|陳列|レジ/], ["booth", /販売|コーナー|ブース|店/],
   ];
 
   async function fromXlsx(bytes, JSZip, { shops = [] } = {}) {
@@ -405,6 +405,100 @@
     });
   }
 
+  // ---------------------------------------------------------------- 図（PowerPoint・Googleスライド）
+
+  // スライドの図形を、グループの変形もたどって絶対位置（px）で取り出す
+  function slideShapes(xml) {
+    const out = [];
+    const num = (s, re) => { const m = s.match(re); return m ? +m[1] : 0; };
+    const xfrmOf = (s) => ({
+      x: num(s, /<a:off x="(-?\d+)"/), y: num(s, /<a:off [^>]*y="(-?\d+)"/),
+      cx: num(s, /<a:ext cx="(\d+)"/), cy: num(s, /<a:ext [^>]*cy="(\d+)"/),
+      chx: num(s, /<a:chOff x="(-?\d+)"/), chy: num(s, /<a:chOff [^>]*y="(-?\d+)"/),
+      chcx: num(s, /<a:chExt cx="(\d+)"/), chcy: num(s, /<a:chExt [^>]*cy="(\d+)"/),
+    });
+    const walk = (inner, tf) => {
+      const groups = topLevel(inner, "p:grpSp");
+      let rest = inner;
+      for (const g of groups) rest = rest.replace(g, "");
+      for (const sp of topLevel(rest, "p:sp")) {
+        const spPr = (sp.match(/<p:spPr[\s\S]*?<\/p:spPr>/) || [""])[0];
+        const f = xfrmOf(spPr);
+        if (!f.cx && !f.cy) continue;
+        const p0 = tf(f.x, f.y), p1 = tf(f.x + f.cx, f.y + f.cy);
+        const paras = topLevel((sp.match(/<p:txBody>[\s\S]*<\/p:txBody>/) || [""])[0], "a:p")
+          .map((p) => unescapeXml((p.match(/<a:t>[^<]*<\/a:t>/g) || []).map((t) => t.replace(/<[^>]+>/g, "")).join("")).trim())
+          .filter(Boolean);
+        // 1文字ずつ改行した縦書き風の文字は詰める
+        const label = paras.every((p) => [...p].length === 1) ? paras.join("") : paras.join("\n");
+        out.push({
+          x: Math.min(p0.x, p1.x) / EMU_PER_PX, y: Math.min(p0.y, p1.y) / EMU_PER_PX,
+          w: Math.abs(p1.x - p0.x) / EMU_PER_PX, h: Math.abs(p1.y - p0.y) / EMU_PER_PX,
+          label: clean(label.replace(/\n/g, "\u0000")).replace(/\u0000\s*/g, "\n"),
+          filled: /<a:solidFill|<a:gradFill|<a:pattFill/.test(spPr.replace(/<a:ln\b[\s\S]*?<\/a:ln>/g, "")),
+          outlined: /<a:ln\b(?![^>]*\/>)[\s\S]*?<a:solidFill>/.test(spPr),
+          title: /<p:ph[^>]*type="(?:title|ctrTitle)"/.test(sp),
+        });
+      }
+      for (const g of groups) {
+        const gPr = (g.match(/<p:grpSpPr>[\s\S]*?<\/p:grpSpPr>/) || [""])[0];
+        const f = xfrmOf(gPr);
+        const sx = f.chcx ? f.cx / f.chcx : 1, sy = f.chcy ? f.cy / f.chcy : 1;
+        const child = (x, y) => tf(f.x + (x - f.chx) * sx, f.y + (y - f.chy) * sy);
+        const body = g.replace(/^<p:grpSp>/, "").replace(/<\/p:grpSp>$/, "").replace(/<p:nvGrpSpPr>[\s\S]*?<\/p:nvGrpSpPr>/, "").replace(gPr, "");
+        walk(body, f.cx || f.chcx ? child : tf);
+      }
+    };
+    const tree = (xml.match(/<p:spTree>([\s\S]*)<\/p:spTree>/) || [, ""])[1];
+    walk(tree, (x, y) => ({ x, y }));
+    return out;
+  }
+
+  // 1枚のスライドに複数の出店者のブース図が並んでいるとき、見出し（食品名）ごとに分ける
+  function splitBooths(items, shops) {
+    const heads = items.filter((i) => shops.some((s) => s.foods && foodsMatch(s.foods, i.label)) && !i.filled);
+    if (heads.length < 2) return [];
+    const groups = heads.map((h) => ({ head: h, shop: shops.find((s) => s.foods && foodsMatch(s.foods, h.label)), items: [] }));
+    for (const it of items) {
+      if (heads.includes(it)) continue;
+      // 見出しより右下にある中で、いちばん近い見出しの図とみなす
+      let best = null, bestD = Infinity;
+      for (const g of groups) {
+        if (g.head.x > it.x + 10 || g.head.y > it.y + 10) continue;
+        const d = Math.hypot(it.x - g.head.x, it.y - g.head.y);
+        if (d < bestD) { bestD = d; best = g; }
+      }
+      if (best) best.items.push(it);
+    }
+    return groups.filter((g) => g.items.length);
+  }
+
+  async function fromPptx(bytes, JSZip, { shops = [] } = {}) {
+    const zip = await JSZip.loadAsync(bytes);
+    const paths = Object.keys(zip.files)
+      .filter((p) => /^ppt\/slides\/slide\d+\.xml$/.test(p))
+      .sort((a, b) => +a.match(/(\d+)\.xml$/)[1] - +b.match(/(\d+)\.xml$/)[1]);
+    if (!paths.length) throw new Error("スライドが見つかりませんでした");
+    const slides = [];
+    for (const [i, p] of paths.entries()) {
+      const shapes = slideShapes(await zip.file(p).async("string"));
+      const titleShape = shapes.find((s) => s.title && s.label);
+      const items = shapes
+        .filter((s) => s !== titleShape)
+        // 文字も塗りもない枠や、文字のない小さな印は図面の部品にしない
+        .filter((s) => s.label || ((s.filled || s.outlined) && s.w >= 40 && s.h >= 40))
+        .map((s) => {
+          const label = tidy(s.label);
+          let type = label ? guessType(label, shops) : "area";
+          // 色や枠のある図形で、種類が分からないものは「建物・区画」にする（文字だけにすると形が消える）
+          if (type === "text" && (s.filled || s.outlined)) type = "block";
+          return { ...s, label, type };
+        });
+      slides.push({ n: i + 1, title: titleShape ? clean(titleShape.label) : "", items, booths: splitBooths(items, shops) });
+    }
+    return { slides };
+  }
+
   // ---------------------------------------------------------------- このアプリのPDF・保存ファイル
 
   async function fromPdf(bytes, PDFLib) {
@@ -499,5 +593,5 @@
     return out;
   }
 
-  return { fromDocx, fromXlsx, fromPdf, embedInPdf, fitItems, rollForward, merge, parseDates, PDF_DATA_KEY };
+  return { fromDocx, fromXlsx, fromPptx, fromPdf, embedInPdf, fitItems, rollForward, merge, parseDates, PDF_DATA_KEY };
 });

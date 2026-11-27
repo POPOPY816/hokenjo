@@ -15,6 +15,7 @@ const VENUE_PALETTE = [
   { type: "trash", label: "ゴミ置き場", w: 80, h: 40, fill: "#efebe9" },
   { type: "road", label: "通路", w: 300, h: 30, fill: "#f5f5f5", dashed: true },
   { type: "area", label: "会場の範囲", w: 600, h: 400, fill: "none", dashed: true, back: true },
+  { type: "block", label: "建物・区画", w: 120, h: 80, fill: "#eceee9" },
   { type: "text", label: "メモ", w: 120, h: 30, fill: "none", noBorder: true },
 ];
 
@@ -29,6 +30,8 @@ const BOOTH_PALETTE = [
   { type: "storage", label: "容器・割り箸等の資材置き場", w: 150, h: 50, fill: "#efebe9" },
   { type: "trash", label: "ゴミ箱（蓋付き）", w: 80, h: 50, fill: "#e5e7eb" },
   { type: "customer", label: "お客さん側（入口）", w: 220, h: 30, fill: "#dbeafe", bold: true },
+  { type: "block", label: "台・区画", w: 120, h: 60, fill: "#eceee9" },
+  { type: "area", label: "範囲", w: 200, h: 120, fill: "none", dashed: true, back: true },
   { type: "text", label: "メモ", w: 120, h: 30, fill: "none", noBorder: true },
 ];
 

@@ -103,3 +103,25 @@ test("このアプリで作ったPDFから入力内容を復元する", async ()
   // 県の様式そのもの（データなし）は null
   assert.equal(await importer.fromPdf(fs.readFileSync(path.join(__dirname, "..", "docs", "forms", "todoke.pdf")), PDFLib), null);
 });
+
+test("Googleスライド（.pptx）の会場図とブース図を読み取る", async () => {
+  const shops = ["うどん", "串焼き", "フライドポテト", "フランクフルト"].map((foods, i) => ({ id: `s${i}`, foods }));
+  const { slides } = await importer.fromPptx(fixture("slides.pptx"), JSZip, { shops });
+  assert.equal(slides.length, 4);
+  const venue = slides[0];
+  assert.equal(venue.title, "会場図");
+  const byLabel = (l) => venue.items.find((i) => i.label === l);
+  assert.equal(byLabel("本部").type, "hq"); // 全角空白で離した「　本　部」も詰める
+  assert.ok(byLabel("観客席"), "1文字ずつ空けた文字を詰める");
+  assert.ok(byLabel("あいがもレース"));
+  // 4人分のブース図が1枚にまとまったスライドは、見出しの食品名ごとに分ける
+  const booths = slides[3].booths;
+  assert.deepEqual(booths.map((b) => b.shop.id), ["s0", "s1", "s2", "s3"]);
+  const kinds = (b) => b.items.map((i) => i.label).filter(Boolean);
+  assert.ok(kinds(booths[0]).includes("手洗い用タンク"));
+  assert.ok(kinds(booths[1]).includes("コンロ"));
+  assert.ok(kinds(booths[2]).includes("フライヤー"));
+  assert.ok(kinds(booths[3]).includes("ホットプレート"));
+  for (const b of booths) for (const it of importer.fitItems(b.items, 600, 480))
+    assert.ok(it.x >= 0 && it.y >= 0 && it.x + it.w <= 600 && it.y + it.h <= 480);
+});

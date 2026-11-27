@@ -563,6 +563,7 @@ async function importFiles(fileList) {
   let full = null; // このアプリの保存ファイル・PDF
   const parts = [];
   const sheets = [];
+  const decks = [];
 
   for (const f of files) {
     const ext = extOf(f.name);
@@ -582,8 +583,10 @@ async function importFiles(fileList) {
         done.push(`${f.name}（${what}）`);
       } else if (ext === "xlsx") {
         sheets.push(f);
-      } else if (ext === "doc" || ext === "xls") {
-        skipped.push(`${f.name}：古い形式です。Word / Excel で開いて「.docx / .xlsx」で保存し直してから選んでください`);
+      } else if (ext === "pptx") {
+        decks.push(f);
+      } else if (ext === "doc" || ext === "xls" || ext === "ppt") {
+        skipped.push(`${f.name}：古い形式です。Word / Excel / PowerPoint で開いて「.docx / .xlsx / .pptx」で保存し直してから選んでください`);
       } else {
         skipped.push(`${f.name}：読み込めない種類のファイルです`);
       }
@@ -620,6 +623,45 @@ async function importFiles(fileList) {
       } else {
         data.maps.booths[where] = importer.fitItems(r.items, 600, 480, []);
         done.push(`${f.name}（ブース図・部品${r.items.length}個）`);
+      }
+    } catch (e) {
+      skipped.push(`${f.name}：読み込めませんでした（${e.message || e}）`);
+    }
+  }
+
+  // PowerPoint（Googleスライドからダウンロードしたもの）は、スライドごとにどの図面に入れるか選んでもらう
+  for (const f of decks) {
+    try {
+      const r = await importer.fromPptx(await readBytes(f), JSZip, { shops: data.shops });
+      const usable = r.slides.filter((s) => s.items.length);
+      if (!usable.length) { skipped.push(`${f.name}：スライドの中に図形が見つかりませんでした`); continue; }
+      for (const sl of usable) {
+        const name = `「${f.name}」の${sl.n}枚目${sl.title ? `（${sl.title}）` : ""}`;
+        const looksVenue = /配置|会場|平面|全体/.test(sl.title);
+        const choices = [
+          { label: "会場全体の平面図にする", value: "venue", className: looksVenue ? "primary" : "" },
+          ...(sl.booths.length >= 2 ? [{ label: `出店者ごとのブース図に分ける（${sl.booths.map((b) => b.head.label).join("・")}）`, value: "split", className: "primary" }] : []),
+          ...data.shops.slice(0, 8).map((s, i) => ({ label: `${shopLabel(s, i)} のブース図にする`, value: s.id })),
+          { label: "取り込まない", value: "skip", className: "ghost" },
+        ];
+        const labels = sl.items.filter((i) => i.label).slice(0, 6).map((i) => i.label.replace(/\n/g, "")).join("・");
+        const where = await UI.choose(`${name}（部品${sl.items.length}個：${labels}…）をどの図面に入れますか？`, choices, "スライドの図");
+        if (!where || where === "skip") continue;
+        if (where === "venue") {
+          data.maps.venue = importer.fitItems(sl.items, 960, 640, data.shops);
+          done.push(`${f.name} ${sl.n}枚目（会場の平面図・部品${sl.items.length}個）`);
+        } else if (where === "split") {
+          const names = [];
+          for (const b of sl.booths) {
+            if (!b.shop) continue;
+            data.maps.booths[b.shop.id] = importer.fitItems(b.items, 600, 480, []);
+            names.push(b.head.label);
+          }
+          done.push(`${f.name} ${sl.n}枚目（ブース図 ${names.length}件：${names.join("・")}）`);
+        } else {
+          data.maps.booths[where] = importer.fitItems(sl.items, 600, 480, []);
+          done.push(`${f.name} ${sl.n}枚目（ブース図・部品${sl.items.length}個）`);
+        }
       }
     } catch (e) {
       skipped.push(`${f.name}：読み込めませんでした（${e.message || e}）`);

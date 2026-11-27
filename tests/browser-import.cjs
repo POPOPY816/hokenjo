@@ -47,6 +47,20 @@ fs.mkdirSync(OUT, { recursive: true });
   if (venue.length < 15) errors.push("平面図の部品が少ない: " + venue.length);
   if (await page.isVisible("#sample-banner")) errors.push("サンプルの帯が消えていない");
 
+  // Googleスライドの会場図（.pptx）：1枚目→平面図、2・3枚目→取り込まない、4枚目→出店者ごとに分ける
+  await page.setInputFiles("#file-input", FIX("slides.pptx"));
+  for (const v of ["venue", "skip", "skip", "split"]) await page.click(`.ui-dialog button[value="${v}"]`);
+  await page.waitForSelector(".ui-dialog h2:text('読み込みました')");
+  const deckSummary = await page.textContent(".ui-dialog p");
+  if (!/ブース図 4件/.test(deckSummary)) errors.push("スライドのブース図が4件に分かれていない: " + deckSummary);
+  await page.click('.ui-dialog button[value="ok"]');
+  expect("スライド読み込み後も出店者は4件", String((await page.$$(".shop")).length), "4");
+  const venueLabels = await page.$$eval("#venue-editor .item text", (els) => els.map((e) => e.textContent));
+  if (!venueLabels.some((t) => t.includes("あいがもレース"))) errors.push("スライドの平面図が入っていない");
+  await page.selectOption("#booth-shop", { index: 1 });
+  const boothLabels = await page.$$eval("#booth-editor .item text", (els) => els.map((e) => e.textContent));
+  if (!boothLabels.some((t) => t.includes("コンロ"))) errors.push("串焼きのブース図にコンロがない: " + boothLabels);
+
   await page.locator("#maps").scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(OUT, "import-maps.png") });
 
