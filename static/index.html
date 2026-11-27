@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>臨時食品調理販売届メーカー</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <h1>臨時食品調理販売届メーカー</h1>
+    <p>幡多福祉保健所管内のイベント出店用。入力すると県の公式様式に書き込んだPDFができます。</p>
+  </div>
+  <div class="file-actions">
+    <button type="button" id="btn-load" class="ghost">前回のデータを開く</button>
+    <button type="button" id="btn-save" class="ghost">データを保存</button>
+    <button type="button" id="btn-new" class="ghost">新しく作る</button>
+    <input type="file" id="file-input" accept="application/json,.json" hidden>
+  </div>
+</header>
+
+<nav class="steps" id="steps">
+  <a href="#organizer" data-step="organizer">1. 主催者</a>
+  <a href="#event" data-step="event">2. イベント</a>
+  <a href="#shops" data-step="shops">3. 出店者</a>
+  <a href="#checks" data-step="checks">4. 確認事項</a>
+  <a href="#maps" data-step="maps">5. 会場図</a>
+  <a href="#output" data-step="output">6. PDF作成</a>
+</nav>
+
+<main class="layout">
+  <div class="content">
+
+    <section class="card" id="organizer" data-section>
+      <h2>1. 主催者の情報</h2>
+      <p class="lead">届出は原則、主催者がまとめて出します。毎回同じ内容なら「データを保存」しておくと次回から読み込むだけで済みます。</p>
+      <div class="grid2">
+        <label>主催団体名<input data-bind="organizer.name" placeholder="例：中村本町商店街振興会"></label>
+        <label>代表者氏名<input data-bind="organizer.representative" placeholder="例：会長　四万十 太郎"></label>
+        <label class="span2">住所<input data-bind="organizer.address" placeholder="例：四万十市中村本町1丁目1-1"></label>
+        <label class="span2">担当者氏名・連絡先<input data-bind="organizer.contact" placeholder="例：幡多 花子　090-0000-0000"></label>
+        <label>食品衛生の統括者（確認事項に記入）<input data-bind="organizer.supervisor" placeholder="例：幡多 花子"></label>
+        <label>確認者（確認事項の「主催団体☑確認者」）<input data-bind="organizer.checker" placeholder="例：幡多 花子"></label>
+      </div>
+      <div class="row-actions">
+        <button type="button" data-copy-contact class="ghost small">担当者を統括者・確認者にもコピー</button>
+      </div>
+    </section>
+
+    <section class="card" id="event" data-section>
+      <h2>2. イベントの情報</h2>
+      <div class="grid2">
+        <label>提出日<input type="date" data-bind="submit_date"></label>
+        <span></span>
+        <label>開催日（初日）<input type="date" data-bind="event.start_date"></label>
+        <label>開催日（最終日）<small>1日だけなら空欄</small><input type="date" data-bind="event.end_date"></label>
+        <label class="span2">時間など（任意）<input data-bind="event.time" placeholder="例：各日 10:00～15:00"></label>
+        <label class="span2">開催名称<input data-bind="event.name" placeholder="例：第10回 本町ふれあい冬まつり"></label>
+        <label class="span2">開催場所<input data-bind="event.place" placeholder="例：四万十市中村本町 商店街アーケード"></label>
+      </div>
+      <fieldset class="choice">
+        <legend>使う水</legend>
+        <label class="pill"><input type="radio" name="water" value="tap" data-bind="event.water">水道水</label>
+        <label class="pill"><input type="radio" name="water" value="other" data-bind="event.water">水道水以外（井戸水など）</label>
+      </fieldset>
+      <fieldset class="choice">
+        <legend>手洗い設備</legend>
+        <label class="pill"><input type="radio" name="handwash" value="tank" data-bind="event.handwash">40L以上のコック付きポリタンク</label>
+        <label class="pill"><input type="radio" name="handwash" value="sink" data-bind="event.handwash">水道・シンクがある</label>
+      </fieldset>
+      <fieldset class="choice">
+        <legend>チラシ</legend>
+        <label class="pill"><input type="checkbox" data-bind="event.has_flyer">チラシを作っている（添付する）</label>
+      </fieldset>
+    </section>
+
+    <section class="card" id="shops" data-section>
+      <h2>3. 出店者</h2>
+      <p class="lead">出店者ごとに1枚ずつ。営業許可を持っている出店者は「下処理施設」以下を省略できます。</p>
+      <div id="shop-list"></div>
+      <button type="button" id="btn-add-shop" class="primary">＋ 出店者を追加</button>
+    </section>
+
+    <section class="card" id="checks" data-section>
+      <h2>4. 確認事項</h2>
+      <p class="lead">「臨時食品調理販売届における確認事項」の主催団体確認欄に☑が入ります。守れる項目をオンにしてください。</p>
+      <div class="row-actions">
+        <button type="button" id="btn-check-all" class="ghost small">すべてオン</button>
+      </div>
+      <div id="check-list" class="check-list"></div>
+      <p class="note">注意事項の原本：
+        <a href="/forms/催物等において食品を提供する方へ.pdf" target="_blank">催物等において食品を提供する方へ</a>／
+        <a href="/forms/催物等における食品提供について.pdf" target="_blank">催物等における食品提供について</a></p>
+    </section>
+
+    <section class="card" id="maps" data-section>
+      <h2>5. 会場の平面図・ブースレイアウト図</h2>
+      <p class="lead">上のボタンで部品を置き、ドラッグで移動・右下の青い■で大きさ変更・ダブルクリックで名前変更。
+        描かなかった図はPDFに入りません（別に用意した図を添付してもOKです）。
+        <a href="/forms/平面図記入例.pdf" target="_blank">県の記入例</a></p>
+      <h3>会場全体の平面図</h3>
+      <div class="row-actions">
+        <button type="button" id="btn-place-booths" class="primary small">出店者のブースを並べる</button>
+      </div>
+      <div id="venue-editor"></div>
+
+      <h3>各ブースのレイアウト図</h3>
+      <div class="row-actions booth-select">
+        <label>出店者<select id="booth-shop"></select></label>
+        <button type="button" id="btn-booth-standard" class="primary small">標準レイアウトを置く</button>
+        <button type="button" id="btn-booth-copy" class="ghost small">別の出店者の図をコピー</button>
+      </div>
+      <div id="booth-editor"></div>
+    </section>
+
+    <section class="card" id="output" data-section>
+      <h2>6. PDFを作る</h2>
+      <ul class="doc-list" id="doc-list"></ul>
+      <label class="pill"><input type="checkbox" data-bind="include_meibo">調理従事者名簿も作る（保健所から求められた場合）</label>
+      <div class="output-actions">
+        <button type="button" id="btn-preview" class="primary big">PDFをプレビュー</button>
+        <button type="button" id="btn-download" class="primary big outline">PDFをダウンロード</button>
+      </div>
+      <div class="submit-info">
+        <h3>提出先</h3>
+        <p>高知県 幡多福祉保健所 衛生環境課（食品保健）<br>
+          〒787-0028 四万十市中村山手通19 高知県幡多総合庁舎1階<br>
+          電話 0880-34-5119／FAX 0880-35-5980／メール 130118@ken.pref.kochi.lg.jp</p>
+        <p>持参・メール・FAXのいずれも可。開催日の<b>概ね2週間前まで</b>に、原則として主催者が提出します。
+          提出後に変更があれば、すぐ変更届を出してください。</p>
+        <p class="note">出典：<a href="https://www.pref.kochi.lg.jp/doc/hata_rinjishokuhin/" target="_blank" rel="noopener">幡多福祉保健所管内での臨時食品調理販売について（高知県）</a>。最新の様式・連絡先は県のページで確認してください。</p>
+      </div>
+    </section>
+  </div>
+
+  <aside class="side">
+    <div class="card warn-panel">
+      <h2>チェック結果</h2>
+      <div id="warnings"><p class="ok">入力するとここに注意点が出ます。</p></div>
+      <p class="note">目安です。提供できる食品などは保健所に事前確認してください。</p>
+    </div>
+  </aside>
+</main>
+
+<template id="shop-template">
+  <article class="shop">
+    <header class="shop-head">
+      <h3><span data-no></span> <span data-title>出店者</span></h3>
+      <div class="shop-tools">
+        <button type="button" data-act="up" class="ghost small" title="上へ">↑</button>
+        <button type="button" data-act="down" class="ghost small" title="下へ">↓</button>
+        <button type="button" data-act="dup" class="ghost small">複製</button>
+        <button type="button" data-act="del" class="danger small">削除</button>
+      </div>
+    </header>
+    <div class="grid2">
+      <label class="span2">出店者（調理責任者）の氏名・団体名<input data-f="name" placeholder="例：本町商店街青年部（代表 山田 春代）"></label>
+      <label>住所<input data-f="address"></label>
+      <label>連絡先<input data-f="tel" inputmode="tel"></label>
+    </div>
+    <fieldset class="choice">
+      <legend>食品衛生法の営業許可</legend>
+      <label class="pill"><input type="radio" data-f="has_permit" value="false">なし</label>
+      <label class="pill"><input type="radio" data-f="has_permit" value="true">あり</label>
+      <label class="inline" data-show="has_permit">業種<input data-f="permit_type" placeholder="例：飲食店営業"></label>
+    </fieldset>
+    <fieldset class="choice">
+      <legend>今年度、ほかの催物に出店した？</legend>
+      <label class="pill"><input type="radio" data-f="other_events" value="false">なし</label>
+      <label class="pill"><input type="radio" data-f="other_events" value="true">あり</label>
+      <label class="inline" data-show="other_events">今回で<input data-f="other_count" type="number" min="1" class="num">回目</label>
+    </fieldset>
+    <div class="grid3">
+      <label>今後の出店予定日数<input data-f="future_days" type="number" min="0" class="num"></label>
+      <label>提供予定数（食）<input data-f="quantity" type="number" min="0" class="num"></label>
+      <label>例文を入れる
+        <select data-preset>
+          <option value="">選ぶと下の欄に例文が入ります</option>
+        </select>
+      </label>
+    </div>
+    <label>提供する食品<input data-f="foods" placeholder="例：焼きそば"></label>
+    <div class="detail" data-detail>
+      <p class="sub">※営業許可を取得している場合は、以下は省略できます</p>
+      <div class="grid2">
+        <label>下処理施設<small>全て現地調理なら不要</small><textarea data-f="prep_facility" rows="2" placeholder="例：本町公民館 調理室"></textarea></label>
+        <label>下処理施設からの運搬方法<small>全て現地調理なら不要</small><textarea data-f="transport" rows="2" placeholder="例：保冷剤入りクーラーボックスで当日搬入"></textarea></label>
+        <label>調理工程：下処理<small>仕入れ先・調理開始日も。現地調理だけでも記入</small><textarea data-f="prep_process" rows="3"></textarea></label>
+        <label>下処理工程での食材の保管方法<textarea data-f="prep_storage" rows="3"></textarea></label>
+        <label>調理工程：現地<small>仕入れ先も</small><textarea data-f="onsite_process" rows="3"></textarea></label>
+        <label>現地での食材の保管方法<textarea data-f="onsite_storage" rows="3"></textarea></label>
+      </div>
+    </div>
+    <details class="staff">
+      <summary>調理従事者名簿（保健所に求められたときだけ提出）<span data-staff-count></span></summary>
+      <table>
+        <thead><tr><th>責任者</th><th>氏名</th><th>住所</th><th>連絡先</th><th>年齢</th><th></th></tr></thead>
+        <tbody data-staff></tbody>
+      </table>
+      <button type="button" data-act="add-staff" class="ghost small">＋ 従事者を追加</button>
+    </details>
+  </article>
+</template>
+
+<script src="/static/map.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
