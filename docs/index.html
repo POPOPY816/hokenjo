@@ -4,13 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>臨時食品調理販売届メーカー</title>
-<link rel="stylesheet" href="/static/style.css">
+<meta name="description" content="幡多福祉保健所管内のイベント出店用。フォームに入力すると、県の公式様式に書き込んだ臨時食品調理販売届のPDFができます。">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="topbar">
   <div class="brand">
     <h1>臨時食品調理販売届メーカー</h1>
-    <p>幡多福祉保健所管内のイベント出店用。入力すると県の公式様式に書き込んだPDFができます。</p>
+    <p>幡多福祉保健所管内のイベント出店用。入力すると県の公式様式に書き込んだPDFができます。入力内容はこの端末の中だけで処理されます。</p>
   </div>
   <div class="file-actions">
     <button type="button" id="btn-load" class="ghost">前回のデータを開く</button>
@@ -28,6 +29,11 @@
   <a href="#maps" data-step="maps">5. 会場図</a>
   <a href="#output" data-step="output">6. PDF作成</a>
 </nav>
+
+<div class="sample-banner-wrap" id="sample-banner" hidden><div class="sample-banner">
+  <p><b>サンプルデータが入っています。</b>このまま「6. PDF作成」を押すと、どんな書類ができるか確認できます。</p>
+  <button type="button" id="btn-sample-clear" class="primary small">空にして自分のイベントを入力する</button>
+</div></div>
 
 <main class="layout">
   <div class="content">
@@ -90,15 +96,15 @@
       </div>
       <div id="check-list" class="check-list"></div>
       <p class="note">注意事項の原本：
-        <a href="/forms/催物等において食品を提供する方へ.pdf" target="_blank">催物等において食品を提供する方へ</a>／
-        <a href="/forms/催物等における食品提供について.pdf" target="_blank">催物等における食品提供について</a></p>
+        <a href="forms/chuijiko-teikyosha.pdf" target="_blank">催物等において食品を提供する方へ</a>／
+        <a href="forms/chuijiko-moyooshi.pdf" target="_blank">催物等における食品提供について</a></p>
     </section>
 
     <section class="card" id="maps" data-section>
       <h2>5. 会場の平面図・ブースレイアウト図</h2>
       <p class="lead">上のボタンで部品を置き、ドラッグで移動・右下の青い■で大きさ変更・ダブルクリックで名前変更。
         描かなかった図はPDFに入りません（別に用意した図を添付してもOKです）。
-        <a href="/forms/平面図記入例.pdf" target="_blank">県の記入例</a></p>
+        <a href="forms/heimenzu-kinyurei.pdf" target="_blank">県の記入例</a></p>
       <h3>会場全体の平面図</h3>
       <div class="row-actions">
         <button type="button" id="btn-place-booths" class="primary small">出店者のブースを並べる</button>
@@ -121,12 +127,22 @@
       <div class="output-actions">
         <button type="button" id="btn-preview" class="primary big">PDFをプレビュー</button>
         <button type="button" id="btn-download" class="primary big outline">PDFをダウンロード</button>
+        <span id="gen-status" class="gen-status" role="status"></span>
+      </div>
+      <div id="preview" class="preview" hidden>
+        <div class="preview-bar">
+          <b>プレビュー</b>
+          <span class="note">表示されない場合は「PDFをダウンロード」で保存して開いてください</span>
+          <button type="button" id="btn-preview-save" class="primary small">このPDFを保存</button>
+          <button type="button" id="btn-preview-close" class="ghost small">閉じる</button>
+        </div>
+        <iframe id="preview-frame" title="作成したPDFのプレビュー"></iframe>
       </div>
       <div class="submit-info">
         <h3>提出先</h3>
         <p>高知県 幡多福祉保健所 衛生環境課（食品保健）<br>
           〒787-0028 四万十市中村山手通19 高知県幡多総合庁舎1階<br>
-          電話 0880-34-5119／FAX 0880-35-5980／メール 130118@ken.pref.kochi.lg.jp</p>
+          電話 <span class="sel">0880-34-5119</span>／FAX <span class="sel">0880-35-5980</span>／メール <span class="sel">130118@ken.pref.kochi.lg.jp</span></p>
         <p>持参・メール・FAXのいずれも可。開催日の<b>概ね2週間前まで</b>に、原則として主催者が提出します。
           提出後に変更があれば、すぐ変更届を出してください。</p>
         <p class="note">出典：<a href="https://www.pref.kochi.lg.jp/doc/hata_rinjishokuhin/" target="_blank" rel="noopener">幡多福祉保健所管内での臨時食品調理販売について（高知県）</a>。最新の様式・連絡先は県のページで確認してください。</p>
@@ -203,7 +219,17 @@
   </article>
 </template>
 
-<script src="/static/map.js"></script>
-<script src="/static/app.js"></script>
+<footer class="foot">
+  <p>個人が作った非公式のツールです。高知県・保健所とは関係ありません。様式の原本は<a href="https://www.pref.kochi.lg.jp/doc/hata_rinjishokuhin/" target="_blank" rel="noopener">高知県のページ</a>で確認できます。
+    フォント：IPA明朝（<a href="fonts/IPA_Font_License.txt" target="_blank">IPAフォントライセンス</a>）</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
+<script src="lib/ui.js"></script>
+<script src="lib/rules.js"></script>
+<script src="lib/fill.js"></script>
+<script src="map.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

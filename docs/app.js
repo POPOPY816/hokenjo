@@ -27,14 +27,15 @@ function blankState() {
     include_meibo: false,
     organizer: { name: "", representative: "", address: "", contact: "", supervisor: "", checker: "" },
     event: { name: "", place: "", start_date: "", end_date: "", time: "", water: "tap", handwash: "tank", has_flyer: false },
-    checks: {},
+    checks: Object.fromEntries(rules.CHECK_ITEMS.map((c) => [c.key, true])),
     shops: [blankShop()],
     maps: { venue: [], booths: {} },
   };
 }
 
+const { rules, wareki, fill } = window.Hokenjo;
+const checkItems = rules.CHECK_ITEMS;
 let state = load() || blankState();
-let checkItems = [];
 
 function load() {
   try {
@@ -51,6 +52,7 @@ function normalize(s) {
   out.maps = { venue: [], booths: {}, ...(s.maps || {}) };
   out.shops = (s.shops || []).map((sh) => ({ ...blankShop(), ...sh, id: sh.id || uid() }));
   out.checks = s.checks || {};
+  for (const it of checkItems) if (!(it.key in out.checks)) out.checks[it.key] = true;
   return out;
 }
 
@@ -204,11 +206,11 @@ function renderShops() {
 
     const preset = $("[data-preset]", node);
     for (const k of Object.keys(PRESETS)) preset.add(new Option(k, k));
-    preset.addEventListener("change", () => {
+    preset.addEventListener("change", async () => {
       const p = PRESETS[preset.value];
       if (!p) return;
       const filled = Object.keys(p).some((k) => (s[k] || "").trim());
-      if (filled && !confirm("入力済みの調理工程の欄を例文で上書きしますか？")) { preset.value = ""; return; }
+      if (filled && !(await UI.confirm("入力済みの調理工程の欄を例文で上書きしますか？", { ok: "上書きする" }))) { preset.value = ""; return; }
       Object.assign(s, Object.fromEntries(Object.keys(PRESETS[Object.keys(PRESETS)[0]]).map((k) => [k, ""])), p);
       if (!s.foods) s.foods = preset.value.replace(/（.*）/, "");
       preset.value = "";
@@ -217,11 +219,11 @@ function renderShops() {
     });
 
     renderStaff(node, s);
-    node.addEventListener("click", (e) => {
+    node.addEventListener("click", async (e) => {
       const act = e.target.closest("button")?.dataset.act;
       if (!act) return;
       if (act === "del") {
-        if (!confirm(`「${s.name || "この出店者"}」を削除しますか？`)) return;
+        if (!(await UI.confirm(`「${s.name || "この出店者"}」を削除しますか？`, { ok: "削除する", danger: true }))) return;
         state.shops.splice(i, 1);
         delete state.maps.booths[s.id];
       } else if (act === "dup") {
@@ -322,19 +324,21 @@ function initMaps() {
   refreshBoothSelect();
 
   $("#btn-place-booths").addEventListener("click", placeBooths);
-  $("#btn-booth-standard").addEventListener("click", () => {
+  $("#btn-booth-standard").addEventListener("click", async () => {
     if (!boothShopId) return;
-    if (boothEditor.hasContent() && !confirm("今の図を消して標準レイアウトを置きますか？")) return;
+    if (boothEditor.hasContent() && !(await UI.confirm("今の図を消して標準レイアウトを置きますか？", { ok: "置き換える" }))) return;
     boothEditor.setItems([]);
     for (const [type, x, y, w, h] of BOOTH_STANDARD) boothEditor.add(type, { x, y, w, h });
     boothEditor.select(null);
   });
-  $("#btn-booth-copy").addEventListener("click", () => {
+  $("#btn-booth-copy").addEventListener("click", async () => {
     const others = state.shops.filter((s) => s.id !== boothShopId && (state.maps.booths[s.id] || []).length);
-    if (!others.length) { alert("図を描いた出店者がまだいません"); return; }
-    const names = others.map((s, i) => `${i + 1}: ${s.name || s.foods}`).join("\n");
-    const n = Number(prompt(`どの出店者の図をコピーしますか？番号を入力\n${names}`));
-    const src = others[n - 1];
+    if (!others.length) { await UI.notify("図を描いた出店者がまだいません"); return; }
+    const pick = await UI.choose("どの出店者の図をコピーしますか？（今の図は置き換わります）", [
+      ...others.map((s) => ({ label: s.name || s.foods || "出店者", value: s.id })),
+      { label: "やめる", value: "cancel", className: "ghost" },
+    ]);
+    const src = others.find((s) => s.id === pick);
     if (!src) return;
     boothEditor.setItems(JSON.parse(JSON.stringify(state.maps.booths[src.id])));
     state.maps.booths[boothShopId] = boothEditor.getItems();
@@ -414,15 +418,7 @@ function scheduleCheck() {
 }
 
 async function runCheck() {
-  let list = [];
-  try {
-    const r = await fetch("/api/check", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: state }),
-    });
-    list = await r.json();
-  } catch {
-    list = [{ level: "warn", message: "サーバーに接続できません。アプリ（python app.py）が起動しているか確認してください", where: "" }];
-  }
+  const list = rules.check(state);
   if (!state.maps.venue.length)
     list.push({ level: "info", message: "会場の平面図が未作成です。5. で作るか、別に用意して添付してください", where: "maps" });
   const noBooth = state.shops.filter((s) => !(state.maps.booths[s.id] || []).length).length;
@@ -462,61 +458,115 @@ function renderDocList() {
     `<li class="muted">別途：${state.event.water === "other" ? "① 水質検査成績書、" : ""}${state.event.has_flyer ? "③ イベントのチラシ" : "（チラシがあれば③として添付）"}</li>`;
 }
 
-async function generate(preview) {
-  const btns = $$("#btn-preview, #btn-download");
-  btns.forEach((b) => (b.disabled = true));
-  const win = preview ? window.open("", "_blank") : null;
-  try {
-    const images = await mapImages();
-    const r = await fetch("/api/generate", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: state, images, inline: preview }),
-    });
-    if (!r.ok) throw new Error(await r.text());
-    const blob = await r.blob();
-    const url = URL.createObjectURL(blob);
-    if (win) win.location.href = url;
-    else {
-      const m = /filename\*=UTF-8''([^;]+)/.exec(r.headers.get("Content-Disposition") || "");
-      const a = Object.assign(document.createElement("a"), {
-        href: url, download: m ? decodeURIComponent(m[1]) : "臨時食品調理販売届.pdf",
-      });
-      document.body.appendChild(a); a.click(); a.remove();
+const fileCache = new Map();
+async function loadFile(path) {
+  if (!fileCache.has(path)) {
+    const p = fetch(path)
+      .then((r) => {
+        if (!r.ok) throw new Error(`${path} を読み込めませんでした（${r.status}）`);
+        return r.arrayBuffer();
+      })
+      .then((b) => new Uint8Array(b));
+    p.catch(() => fileCache.delete(path));
+    fileCache.set(path, p);
+  }
+  return fileCache.get(path);
+}
+
+function pdfName() {
+  const ev = state.event;
+  const name = (ev.name || "").trim().replace(/[\\/:*?"<>|\s]+/g, "_").slice(0, 40);
+  const day = (ev.start_date || today()).replace(/-/g, "");
+  return ["臨時食品調理販売届", day, name].filter(Boolean).join("_") + ".pdf";
+}
+
+async function makePdf() {
+  const images = await mapImages();
+  const bytes = await fill.build(state, images, { PDFLib, fontkit, wareki, load: loadFile });
+  return new Blob([bytes], { type: "application/pdf" });
+}
+
+// ファイルを保存する。claude.ai の埋め込み表示では downloads 機能、それ以外は通常のダウンロード
+let downloadsApi;
+async function saveBlob(filename, blob) {
+  if (downloadsApi === undefined)
+    downloadsApi = window.claude?.use ? await window.claude.use("downloads").catch(() => null) : null;
+  if (downloadsApi) {
+    try {
+      await downloadsApi.save({ filename, data: blob });
+    } catch (e) {
+      if (e?.code !== "declined") await UI.notify(`保存できませんでした（${e?.code || e}）`);
     }
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement("a"), { href: url, download: filename });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+async function withBusy(fn) {
+  const btns = $$("#btn-preview, #btn-download");
+  const status = $("#gen-status");
+  btns.forEach((b) => (b.disabled = true));
+  status.textContent = "PDFを作っています…";
+  try {
+    await fn();
+    status.textContent = "";
   } catch (e) {
-    if (win) win.close();
-    alert("PDFを作れませんでした：" + e.message);
+    status.textContent = "";
+    await UI.notify("PDFを作れませんでした：" + (e?.message || e));
   } finally {
     btns.forEach((b) => (b.disabled = false));
   }
+}
+
+let previewUrl = null;
+function generate(preview) {
+  return withBusy(async () => {
+    const blob = await makePdf();
+    if (!preview) {
+      await saveBlob(pdfName(), blob);
+      return;
+    }
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = URL.createObjectURL(blob);
+    const box = $("#preview");
+    box.hidden = false;
+    $("#preview-frame").src = previewUrl;
+    box.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 }
 
 // ---------------------------------------------------------------- 保存・読み込み
 
 function saveFile() {
   const name = (state.event.name || "臨時届").replace(/[\\/:*?"<>|\s]+/g, "_");
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-  const a = Object.assign(document.createElement("a"), {
-    href: URL.createObjectURL(blob), download: `${name}_${state.event.start_date || today()}.json`,
-  });
-  document.body.appendChild(a); a.click(); a.remove();
+  const { sample, ...data } = state;
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  return saveBlob(`${name}_${state.event.start_date || today()}.json`, blob);
 }
 
 function openFile(file) {
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try {
       const s = normalize(JSON.parse(reader.result));
-      const keep = confirm("読み込みました。\nイベント日付と提出日をリセットして「次回用」にしますか？\n（OK＝日付をリセット／キャンセル＝そのまま開く）");
-      if (keep) {
+      delete s.sample;
+      const how = await UI.choose("読み込みました。次のイベント用に日付を空にしますか？", [
+        { label: "そのまま開く", value: "keep", className: "ghost" },
+        { label: "日付を空にして使い回す", value: "reset", className: "primary" },
+      ]);
+      if (how === "reset") {
         s.submit_date = today();
         s.event.start_date = ""; s.event.end_date = "";
       }
       state = s;
       renderAll();
       changed();
-    } catch (e) { alert("ファイルを読み込めませんでした：" + e.message); }
+    } catch (e) { await UI.notify("ファイルを読み込めませんでした：" + e.message); }
   };
   reader.readAsText(file);
 }
@@ -528,16 +578,33 @@ function renderAll() {
   renderDocList();
   if (venueEditor) venueEditor.setItems(state.maps.venue);
   refreshBoothSelect();
+  $("#sample-banner").hidden = !state.sample;
+}
+
+// 初めて開いた人には、どんなPDFができるか分かるようにサンプルを入れておく
+async function loadSample() {
+  try {
+    const r = await fetch("sample.json");
+    if (!r.ok) return null;
+    const s = normalize(await r.json());
+    s.sample = true;
+    s.submit_date = today();
+    return s;
+  } catch {
+    return null;
+  }
+}
+
+function startBlank() {
+  state = blankState();
+  renderAll();
+  changed();
 }
 
 // ---------------------------------------------------------------- 起動
 
 async function init() {
-  try {
-    checkItems = await (await fetch("/api/check-items")).json();
-  } catch { checkItems = []; }
-  // 未設定の確認事項は最初からオン（保存データに明示的な false があればそれを優先）
-  for (const it of checkItems) if (!(it.key in state.checks)) state.checks[it.key] = true;
+  if (!load()) state = (await loadSample()) || blankState();
 
   bindStatic();
   initMaps();
@@ -552,22 +619,23 @@ async function init() {
     for (const it of checkItems) state.checks[it.key] = true;
     renderChecks(); changed();
   });
-  $("[data-copy-contact]").addEventListener("click", () => {
+  $("[data-copy-contact]").addEventListener("click", async () => {
     const who = (state.organizer.contact || "").split(/[\s　]+[0-9０-９(（]/)[0].trim();
-    if (!who) { alert("先に担当者氏名を入力してください"); return; }
+    if (!who) { await UI.notify("先に担当者氏名を入力してください"); return; }
     state.organizer.supervisor = who; state.organizer.checker = who;
     fillStatic(); changed();
   });
   $("#btn-preview").addEventListener("click", () => generate(true));
   $("#btn-download").addEventListener("click", () => generate(false));
+  $("#btn-preview-close").addEventListener("click", () => { $("#preview").hidden = true; });
+  $("#btn-preview-save").addEventListener("click", () => generate(false));
   $("#btn-save").addEventListener("click", saveFile);
   $("#btn-load").addEventListener("click", () => $("#file-input").click());
   $("#file-input").addEventListener("change", (e) => { if (e.target.files[0]) openFile(e.target.files[0]); e.target.value = ""; });
-  $("#btn-new").addEventListener("click", () => {
-    if (!confirm("入力内容を消して新しく作りますか？（必要なら先に「データを保存」してください）")) return;
-    state = blankState();
-    for (const it of checkItems) state.checks[it.key] = true;
-    renderAll(); changed();
+  $("#btn-sample-clear").addEventListener("click", startBlank);
+  $("#btn-new").addEventListener("click", async () => {
+    if (!state.sample && !(await UI.confirm("入力内容を消して新しく作りますか？必要なら先に「データを保存」してください。", { ok: "消して新しく作る", danger: true }))) return;
+    startBlank();
   });
 
   // 表示中のセクションをナビで強調

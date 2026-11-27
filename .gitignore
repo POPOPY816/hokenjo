@@ -5,3 +5,5 @@ venv/
 *.egg-info/
 .pytest_cache/
 output/
+node_modules/
+tmp/

@@ -1,0 +1,51 @@
+{
+  "page": "https://www.pref.kochi.lg.jp/doc/hata_rinjishokuhin/",
+  "updated": "2024年04月15日",
+  "files": [
+    {
+      "title": "(様式)臨時食品調理販売届 [DOC：56KB]",
+      "url": "https://www.pref.kochi.lg.jp/doc/hata_rinjishokuhin/file_contents/file_2024481234849_1.doc",
+      "sha256": "ab5e86943ea0197779680cd4d096be81d51554cccb99efd0473bff484e843680"
+    },
+    {
+      "title": "(様式)臨時食品調理販売届 [PDF：56.3KB]",
+      "url": "https://www.pref.kochi.lg.jp/doc/hata_rinjishokuhin/file_contents/file_2024481234858_1.pdf",
+      "sha256": "77a9195953fd758e888b23e3d60124263404fb8c3670d63fd19bac4e47bdb298"
+    },
+    {
+      "title": "(記入例)催事全体がわかる平面図及び各ブースレイアウト図[PDF：91.6KB]",
+      "url": "https://www.pref.kochi.lg.jp/doc/hata_rinjishokuhin/file_contents/file_2024481234929_1.pdf",
+      "sha256": "03d6637a5a18f0cc0d7008fac3e69556912b8ffef9e335e33a0af7e7abc3b1b6"
+    },
+    {
+      "title": "(様式)臨時食品調理販売届における確認事項[DOCX：12.3KB]",
+      "url": "https://www.pref.kochi.lg.jp/doc/hata_rinjishokuhin/file_contents/file_2024481234523_1.docx",
+      "sha256": "26ce42757e850766c13dc9b58e0916d38d14200028ea1cdc67c743acc1c60272"
+    },
+    {
+      "title": "(様式)臨時食品調理販売届における確認事項[PDF：54.8KB]",
+      "url": "https://www.pref.kochi.lg.jp/doc/hata_rinjishokuhin/file_contents/file_2024481234538_1.pdf",
+      "sha256": "2543dec9d81a65b75d4e3165c27063d25fd5762acc8b8217b926d24ec51b4f90"
+    },
+    {
+      "title": "(様式)調理従事者名簿及び調理方法[DOCX：11.7KB]",
+      "url": "https://www.pref.kochi.lg.jp/doc/hata_rinjishokuhin/file_contents/file_202448123506_1.docx",
+      "sha256": "61f4ee49fda171c4f536ef4fd73ec13da39f14b16fca2b07088635c6f26cdba8"
+    },
+    {
+      "title": "(様式)調理従事者名簿及び調理方法[PDF：26.8KB]",
+      "url": "https://www.pref.kochi.lg.jp/doc/hata_rinjishokuhin/file_contents/file_2024481235018_1.pdf",
+      "sha256": "3956624cf415823978e2664927edc7bf9dd3aa8815b52a7e7f2e3cae1a2066d6"
+    },
+    {
+      "title": "催物等における食品提供について[PDF：94.7KB]",
+      "url": "https://www.pref.kochi.lg.jp/doc/hata_rinjishokuhin/file_contents/file_2024481235628_1.pdf",
+      "sha256": "47d70000e128fc2664dda15c99ea88fcdb12356c456fcf5076c2f5e0a6a9be58"
+    },
+    {
+      "title": "催物等において食品を提供する方へ[PDF：84.6KB]",
+      "url": "https://www.pref.kochi.lg.jp/doc/hata_rinjishokuhin/file_contents/file_202448123571_1.pdf",
+      "sha256": "ab2145294896dd4e8331127861ea57720f7c575ac10666ba79aa8e4dc8f1d27d"
+    }
+  ]
+}

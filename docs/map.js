@@ -170,22 +170,22 @@ class MapEditor {
     return { x: this.clampX(40, w), y: this.clampY(40, h) };
   }
 
-  action(act) {
+  async action(act) {
     if (act === "clear") {
-      if (this.items.length && confirm("この図面の部品を全部消しますか？")) {
+      if (this.items.length && await UI.confirm("この図面の部品を全部消しますか？", { ok: "全部消す", danger: true })) {
         this.items = []; this.select(null); this.onChange();
       }
       return;
     }
     const it = this.get(this.selected);
-    if (!it) { alert("先に図面の部品をクリックして選んでください"); return; }
+    if (!it) { await UI.notify("先に図面の部品をクリックして選んでください"); return; }
     if (act === "del") {
       this.items = this.items.filter((i) => i !== it);
       this.select(null);
     } else if (act === "rename") {
-      const v = prompt("表示する名前（改行は「/」）", it.label.replace(/\n/g, "/"));
+      const v = await UI.prompt("表示する名前（改行して2行にもできます）", it.label, { multiline: true });
       if (v === null) return;
-      it.label = v.replace(/\//g, "\n");
+      it.label = v;
     } else if (act === "rotate") {
       [it.w, it.h] = [it.h, it.w];
       it.x = this.clampX(it.x, it.w); it.y = this.clampY(it.y, it.h);

@@ -1,81 +1,94 @@
 # 臨時食品調理販売届メーカー
 
 学校や町内会のバザー、お祭り、イベントで食品を出すときに保健所へ出す
-**「臨時食品調理販売届」** 一式を、フォームとボタンで入力するだけで作るアプリです。
+**「臨時食品調理販売届」** 一式を、フォームとボタンで入力するだけで作るWebアプリです。
 
 対象：高知県 **幡多福祉保健所** 管内
 （[県のページ](https://www.pref.kochi.lg.jp/doc/hata_rinjishokuhin/)の2024年4月版様式）
 
+ブラウザだけで動きます。サーバーは不要で、入力した氏名や住所は外部に送信されません。
+
 ## できること
 
 - 県の**公式様式（PDF）にそのまま書き込んだ**提出用PDFを作ります
-  - 臨時食品調理販売届（出店者が7件以上でもページを自動で追加し、番号を振り直します）
+  - 臨時食品調理販売届（出店者が7件以上でもページを足して番号を振り直します）
   - ② 催事全体の平面図・各ブースのレイアウト図
   - ④ 臨時食品調理販売届における確認事項（☑も自動）
-  - ⑤ 調理従事者名簿及び調理方法（保健所から求められたとき用。調理責任者に○を付けます）
+  - ⑤ 調理従事者名簿及び調理方法（保健所から求められたとき用。調理責任者を○で囲みます）
 - **会場図・ブース図を画面上で作成**：「入口」「手洗い場」「加熱機器」などのボタンで部品を置き、
-  ドラッグで移動、右下の■で大きさを変更。「出店者のブースを並べる」「標準レイアウトを置く」で下書きを自動作成
+  ドラッグで移動、右下の■で大きさを変更、ダブルクリックで名前を変更。
+  「出店者のブースを並べる」「標準レイアウトを置く」で下書きを自動作成
 - **入力チェック**：提出期限（開催日の概ね2週間前）、年度4日を超える出店（営業許可が必要）、
   臨時届では原則出せない食品（おにぎり・カレー・サラダ・チョコバナナ等）などを画面右側で知らせます
-- **調理工程の例文**：焼きそば・フランクフルト・かき氷などを選ぶと、下処理〜現地の工程欄に例文が入ります
-- **前回のデータを使い回し**：「データを保存」でJSONファイルに保存し、次回「前回のデータを開く」で読み込めば、
+- **調理工程の例文**：焼きそば・フランクフルト・かき氷などを選ぶと、下処理～現地の工程欄に例文が入ります
+- **前回のデータを使い回し**：「データを保存」で保存したファイルを、次回「前回のデータを開く」で読み込めば、
   日付だけ変えてすぐ作れます（入力途中の内容はブラウザにも自動保存されます）
-
-## 使い方
-
-### 1. 準備（最初の1回だけ）
-
-[Python](https://www.python.org/downloads/) 3.10 以上をインストールします
-（Windows はインストール時に「Add python.exe to PATH」にチェック）。
-
-### 2. 起動
-
-- **Windows**：`start.bat` をダブルクリック
-- **Mac**：`start.command` をダブルクリック（初回は右クリック→「開く」）
-- **コマンドで起動する場合**：
-
-```bash
-pip install -r requirements.txt
-```
-
-```bash
-python app.py
-```
-
-ブラウザで自動的に <http://127.0.0.1:5000> が開きます。開かない場合は手でこのアドレスを開いてください。
-入力内容はこのパソコンの中だけで処理され、外部には送信されません。
-
-### 3. 入力してPDFを作る
-
-1. 主催者 → 2. イベント → 3. 出店者 → 4. 確認事項 → 5. 会場図 → 6. PDF作成 の順に入力
-2. 右側の「チェック結果」で赤い「要修正」がないか確認
-3. 「PDFをダウンロード」→ 印刷 or メール・FAXで提出
-
-提出先：幡多福祉保健所 衛生環境課（電話 0880-34-5119／FAX 0880-35-5980）。
-水道水以外を使う場合の水質検査成績書（①）と、チラシ（③）は別に添付してください。
 
 > チェック機能は目安です。提供できる食品などの最終判断は保健所が行います。迷ったら事前に相談してください。
 
-## 開発者向け
+## 公開のしかた（GitHub Pages）
+
+1. このブランチを `main` にマージする
+2. GitHub のリポジトリで **Settings → Pages** を開く
+3. 「Build and deployment」の Source を **Deploy from a branch**、Branch を **`main` / `/docs`** にして Save
+4. 数分後に `https://<ユーザー名>.github.io/hokenjo/` で使えるようになります
+
+無料プランの場合、GitHub Pages を使うにはリポジトリを公開（Public）にする必要があります。
+
+## 様式が改訂されたら
+
+`.github/workflows/check-forms.yml` が毎週月曜に県のページを確認し、様式ファイルやページの更新日が変わっていたら
+**「高知県の様式が更新されました」という Issue を自動で作ります**（手動で確認したいときは Actions タブから実行）。
+
+Issue が来たら：
+
+1. 県のページから新しいPDFをダウンロードし、`docs/forms/` の同じ名前のファイル
+   （`todoke.pdf`＝届、`kakunin.pdf`＝確認事項、`meibo.pdf`＝名簿）を置き換える
+2. 文字・罫線の位置を調べる：`pip install pymupdf` のあと `python tools/measure.py docs/forms/todoke.pdf`
+3. `docs/lib/fill.js` の先頭にある `LAYOUT`（書き込む位置の一覧）を合わせる。項目が増減した場合は入力画面
+   （`docs/index.html`、`docs/app.js`）とチェック（`docs/lib/rules.js`）も直す
+4. `npm test` と、サンプルでPDFを作って目視で確認
+5. `node tools/check-forms.mjs --update` で記録を更新してコミットし、Issue を閉じる
+
+様式の座標は `LAYOUT` の1か所にまとめてあるので、レイアウトが少しずれただけなら数字を直すだけで済みます。
+
+## 開発
 
 ```
-app.py                Flask サーバー（画面と PDF 生成 API）
-hokenjo/pdf_fill.py   公式様式PDFへの書き込み（座標は様式から実測）
-hokenjo/rules.py      入力チェック
-hokenjo/wareki.py     令和表記
-static/               画面（index.html / app.js / map.js=図面エディタ / style.css）
-forms/original/       県の公式様式・資料（原本）
-examples/sample.json  サンプルデータ
-tools/measure.py      様式の座標を調べるツール
-tests/                テスト（python -m pytest）
+docs/                 公開されるサイト一式（GitHub Pages の公開フォルダ）
+  index.html          画面
+  app.js              画面の動き（入力・保存・PDF作成）
+  map.js              図面エディタ
+  lib/fill.js         公式様式PDFへの書き込み（座標は LAYOUT に集約）
+  lib/rules.js        入力チェックと和暦表記
+  lib/ui.js           画面内ダイアログ
+  forms/              県の公式様式・資料と、更新チェック用の記録（manifest.json）
+  fonts/              IPA明朝（PDFに埋め込む日本語フォント）
+  sample.json         初回表示用のサンプルデータ
+tests/                npm test（Node で docs/lib を動かす）、browser.cjs（画面の通し確認）
+tools/                様式の更新チェック、座標の測定
 ```
 
-### 様式が改訂されたら
+手元で動かす：
 
-1. 県のページから新しいPDFをダウンロードして `forms/original/` の同名ファイルを置き換える
-2. `python tools/measure.py forms/original/臨時食品調理販売届.pdf` で文字・罫線の座標を確認
-3. `hokenjo/pdf_fill.py` の座標（`ROW`、`SHOP_COLS`、`KAKUNIN_BOXES` など）を合わせる
-4. `examples/sample.json` で PDF を作って目視確認、`python -m pytest`
+```bash
+npm install
+```
 
-PDF 生成には [PyMuPDF](https://pymupdf.readthedocs.io/)（AGPL）を使っています。
-日本語フォントは PyMuPDF に同梱のものを埋め込むため、パソコンにフォントを入れる必要はありません。
+```bash
+npm test
+```
+
+```bash
+npm run serve
+```
+
+`npm run serve` のあと <http://localhost:8080> を開きます。
+
+## ライセンスについて
+
+- PDF生成：[pdf-lib](https://pdf-lib.js.org/)・[fontkit](https://github.com/Hopding/fontkit)（MIT）
+- フォント：IPA明朝（[IPAフォントライセンスv1.0](docs/fonts/IPA_Font_License.txt)）
+- 様式：高知県が公開している様式をそのまま使用しています
+
+個人が作った非公式のツールで、高知県・保健所とは関係ありません。

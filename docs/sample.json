@@ -1,0 +1,415 @@
+{
+  "version": 1,
+  "submit_date": "2026-11-27",
+  "include_meibo": true,
+  "organizer": {
+    "name": "中村本町商店街振興会",
+    "representative": "会長　四万十 太郎",
+    "address": "四万十市中村本町1丁目1-1",
+    "contact": "幡多 花子　090-0000-0000",
+    "supervisor": "幡多 花子",
+    "checker": "幡多 花子"
+  },
+  "event": {
+    "name": "第10回 本町ふれあい冬まつり",
+    "place": "四万十市中村本町 商店街アーケード（本町公園含む）",
+    "start_date": "2026-12-19",
+    "end_date": "2026-12-20",
+    "time": "各日 10:00～15:00",
+    "water": "tap",
+    "handwash": "tank",
+    "has_flyer": true
+  },
+  "checks": {
+    "supervisor": true,
+    "cooking_only": true,
+    "packaged_licensed": true,
+    "water": true,
+    "handwash": true,
+    "alcohol": true,
+    "no_prep": true,
+    "simple_cook": true,
+    "temperature": true,
+    "clothes": true,
+    "sick": true,
+    "eat_soon": true,
+    "inform": true,
+    "report": true,
+    "meibo": true
+  },
+  "shops": [
+    {
+      "name": "本町商店街青年部（代表 山田 春代）",
+      "address": "四万十市中村本町2-3",
+      "tel": "090-1234-0000",
+      "has_permit": false,
+      "other_events": true,
+      "other_count": 1,
+      "future_days": 1,
+      "foods": "焼きそば",
+      "quantity": "300",
+      "prep_facility": "本町公民館 調理室",
+      "transport": "クーラーボックス（保冷剤入り）で当日搬入",
+      "prep_process": "12/19 7:00～ 公民館で野菜・肉を切る→冷蔵保管（仕入れ先：〇〇スーパー中村店）",
+      "prep_storage": "業務用冷蔵庫（10℃以下）",
+      "onsite_process": "鉄板で肉・野菜・麺を炒め、ソースで味付け→青のり・鰹節をかけて提供（麺：△△製麺）",
+      "onsite_storage": "クーラーボックス＋保冷剤、温度計で10℃以下を確認",
+      "staff": [
+        {
+          "name": "山田 春代",
+          "address": "四万十市111",
+          "tel": "0880-34-0000",
+          "age": "38",
+          "leader": true
+        },
+        {
+          "name": "小松 あき",
+          "address": "四万十市渡川222",
+          "tel": "080-5678-0000",
+          "age": "56"
+        }
+      ],
+      "id": "usq446i0"
+    },
+    {
+      "name": "（有）△△ベーカリー",
+      "address": "四万十市具同1000",
+      "tel": "0880-00-0000",
+      "has_permit": true,
+      "permit_type": "菓子製造業",
+      "other_events": false,
+      "future_days": 0,
+      "foods": "焼き菓子（包装・表示済み）",
+      "quantity": "200",
+      "id": "u817n8rh"
+    },
+    {
+      "name": "かき氷屋 さくら",
+      "address": "宿毛市",
+      "tel": "080",
+      "has_permit": false,
+      "other_events": false,
+      "future_days": "",
+      "foods": "かき氷、フルーツ乗せアイス",
+      "quantity": "150",
+      "onsite_process": "市販の氷を削りシロップ（市販品）をかける",
+      "staff": [
+        {
+          "name": "桜井 一郎",
+          "age": "45"
+        }
+      ],
+      "id": "8hogb2v0"
+    }
+  ],
+  "maps": {
+    "venue": [
+      {
+        "id": "s1",
+        "type": "area",
+        "label": "本町公園（会場）",
+        "x": 40,
+        "y": 40,
+        "w": 880,
+        "h": 560
+      },
+      {
+        "id": "s2",
+        "type": "booth",
+        "label": "1. 焼きそば\n本町商店街青年部",
+        "x": 100,
+        "y": 100,
+        "w": 130,
+        "h": 70,
+        "shopId": "usq446i0"
+      },
+      {
+        "id": "s3",
+        "type": "booth",
+        "label": "2. 焼き菓子\n（有）△△ベーカリー",
+        "x": 250,
+        "y": 100,
+        "w": 130,
+        "h": 70,
+        "shopId": "u817n8rh"
+      },
+      {
+        "id": "s4",
+        "type": "booth",
+        "label": "3. かき氷\nかき氷屋 さくら",
+        "x": 400,
+        "y": 100,
+        "w": 130,
+        "h": 70,
+        "shopId": "8hogb2v0"
+      },
+      {
+        "id": "s5",
+        "type": "handwash",
+        "label": "手洗い場（液体石けん）",
+        "x": 580,
+        "y": 110,
+        "w": 160,
+        "h": 50
+      },
+      {
+        "id": "s6",
+        "type": "eating",
+        "label": "飲食スペース（椅子・テーブル）",
+        "x": 100,
+        "y": 260,
+        "w": 320,
+        "h": 140
+      },
+      {
+        "id": "s7",
+        "type": "stage",
+        "label": "舞台",
+        "x": 560,
+        "y": 260,
+        "w": 240,
+        "h": 120
+      },
+      {
+        "id": "s8",
+        "type": "hq",
+        "label": "本部・総合案内",
+        "x": 100,
+        "y": 460,
+        "w": 140,
+        "h": 70
+      },
+      {
+        "id": "s9",
+        "type": "trash",
+        "label": "ゴミ置き場",
+        "x": 280,
+        "y": 470,
+        "w": 120,
+        "h": 50
+      },
+      {
+        "id": "s10",
+        "type": "toilet",
+        "label": "トイレ",
+        "x": 440,
+        "y": 460,
+        "w": 80,
+        "h": 70
+      },
+      {
+        "id": "s11",
+        "type": "entrance",
+        "label": "入口（北側）",
+        "x": 440,
+        "y": 20,
+        "w": 120,
+        "h": 40
+      },
+      {
+        "id": "s12",
+        "type": "entrance",
+        "label": "入口（南側）",
+        "x": 660,
+        "y": 580,
+        "w": 120,
+        "h": 40
+      },
+      {
+        "id": "s13",
+        "type": "road",
+        "label": "アーケード通り",
+        "x": 40,
+        "y": 610,
+        "w": 500,
+        "h": 26
+      }
+    ],
+    "booths": {
+      "usq446i0": [
+        {
+          "id": "mmwyjtya72",
+          "type": "tent",
+          "label": "テント（3面を覆う）",
+          "w": 520,
+          "h": 370,
+          "x": 40,
+          "y": 30
+        },
+        {
+          "id": "mmwyjtya73",
+          "type": "handwash",
+          "label": "手洗い（40Lポリタンク・液体石けん）",
+          "w": 150,
+          "h": 60,
+          "x": 60,
+          "y": 70
+        },
+        {
+          "id": "mmwyjtya74",
+          "type": "storage",
+          "label": "容器・割り箸等の資材置き場",
+          "w": 150,
+          "h": 50,
+          "x": 230,
+          "y": 70
+        },
+        {
+          "id": "mmwyjtya75",
+          "type": "cooler",
+          "label": "クーラーボックス・温度計",
+          "w": 120,
+          "h": 60,
+          "x": 420,
+          "y": 70
+        },
+        {
+          "id": "mmwyjtya86",
+          "type": "alcohol",
+          "label": "消毒用アルコール",
+          "w": 100,
+          "h": 40,
+          "x": 60,
+          "y": 140
+        },
+        {
+          "id": "mmwyjtya87",
+          "type": "worktable",
+          "label": "調理台",
+          "w": 120,
+          "h": 60,
+          "x": 60,
+          "y": 220
+        },
+        {
+          "id": "mmwyjtya88",
+          "type": "heat",
+          "label": "加熱機器（鉄板・コンロ）",
+          "w": 160,
+          "h": 70,
+          "x": 280,
+          "y": 200
+        },
+        {
+          "id": "mmwyjtya99",
+          "type": "trash",
+          "label": "ゴミ箱（蓋付き）",
+          "w": 80,
+          "h": 50,
+          "x": 460,
+          "y": 300
+        },
+        {
+          "id": "mmwyjtya9a",
+          "type": "counter",
+          "label": "商品陳列台＆会計",
+          "w": 260,
+          "h": 50,
+          "x": 150,
+          "y": 330
+        },
+        {
+          "id": "mmwyjtya9b",
+          "type": "customer",
+          "label": "お客さん側（入口）",
+          "w": 260,
+          "h": 30,
+          "x": 150,
+          "y": 420
+        }
+      ],
+      "8hogb2v0": [
+        {
+          "id": "mmwyjtyc0c",
+          "type": "tent",
+          "label": "テント（3面を覆う）",
+          "w": 520,
+          "h": 370,
+          "x": 40,
+          "y": 30
+        },
+        {
+          "id": "mmwyjtyc0d",
+          "type": "handwash",
+          "label": "手洗い（40Lポリタンク・液体石けん）",
+          "w": 150,
+          "h": 60,
+          "x": 60,
+          "y": 70
+        },
+        {
+          "id": "mmwyjtyc1e",
+          "type": "storage",
+          "label": "容器・割り箸等の資材置き場",
+          "w": 150,
+          "h": 50,
+          "x": 230,
+          "y": 70
+        },
+        {
+          "id": "mmwyjtyc1f",
+          "type": "cooler",
+          "label": "クーラーボックス・温度計",
+          "w": 120,
+          "h": 60,
+          "x": 420,
+          "y": 70
+        },
+        {
+          "id": "mmwyjtyc1g",
+          "type": "alcohol",
+          "label": "消毒用アルコール",
+          "w": 100,
+          "h": 40,
+          "x": 60,
+          "y": 140
+        },
+        {
+          "id": "mmwyjtyc1h",
+          "type": "worktable",
+          "label": "調理台",
+          "w": 120,
+          "h": 60,
+          "x": 60,
+          "y": 220
+        },
+        {
+          "id": "mmwyjtyc1i",
+          "type": "heat",
+          "label": "加熱機器（鉄板・コンロ）",
+          "w": 160,
+          "h": 70,
+          "x": 280,
+          "y": 200
+        },
+        {
+          "id": "mmwyjtyc1j",
+          "type": "trash",
+          "label": "ゴミ箱（蓋付き）",
+          "w": 80,
+          "h": 50,
+          "x": 460,
+          "y": 300
+        },
+        {
+          "id": "mmwyjtyc2k",
+          "type": "counter",
+          "label": "商品陳列台＆会計",
+          "w": 260,
+          "h": 50,
+          "x": 150,
+          "y": 330
+        },
+        {
+          "id": "mmwyjtyc2l",
+          "type": "customer",
+          "label": "お客さん側（入口）",
+          "w": 260,
+          "h": 30,
+          "x": 150,
+          "y": 420
+        }
+      ]
+    }
+  }
+}
