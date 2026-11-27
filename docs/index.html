@@ -14,10 +14,10 @@
     <p>幡多福祉保健所管内のイベント出店用。入力すると県の公式様式に書き込んだPDFができます。入力内容はこの端末の中だけで処理されます。</p>
   </div>
   <div class="file-actions">
-    <button type="button" id="btn-load" class="ghost">前回のデータを開く</button>
-    <button type="button" id="btn-save" class="ghost">データを保存</button>
+    <button type="button" id="btn-import" class="ghost">インポート</button>
+    <button type="button" id="btn-export" class="ghost">エクスポート</button>
     <button type="button" id="btn-new" class="ghost">新しく作る</button>
-    <input type="file" id="file-input" accept="application/json,.json" hidden>
+    <input type="file" id="file-input" multiple accept=".json,.pdf,.docx,.xlsx,.doc,.xls,application/json,application/pdf" hidden>
   </div>
 </header>
 
@@ -32,7 +32,10 @@
 
 <div class="sample-banner-wrap" id="sample-banner" hidden><div class="sample-banner">
   <p><b>サンプルデータが入っています。</b>このまま「6. PDF作成」を押すと、どんな書類ができるか確認できます。</p>
-  <button type="button" id="btn-sample-clear" class="primary small">空にして自分のイベントを入力する</button>
+  <div class="banner-actions">
+    <button type="button" data-import class="primary small">去年の書類を読み込む</button>
+    <button type="button" id="btn-sample-clear" class="ghost small">空にして入力する</button>
+  </div>
 </div></div>
 
 <main class="layout">
@@ -40,7 +43,11 @@
 
     <section class="card" id="organizer" data-section>
       <h2>1. 主催者の情報</h2>
-      <p class="lead">届出は原則、主催者がまとめて出します。毎回同じ内容なら「データを保存」しておくと次回から読み込むだけで済みます。</p>
+      <div class="import-hint">
+        <p><b>去年の書類から自動で入力できます。</b>Word で書いた届・確認事項・名簿（.docx）、Excel の平面図（.xlsx）、このアプリで作ったPDFやデータファイルを、まとめて選ぶかこのページに落としてください。開催日は1年後の同じ曜日に直します。</p>
+        <button type="button" data-import class="primary">去年の書類を読み込む</button>
+      </div>
+      <p class="lead">届出は原則、主催者がまとめて出します。</p>
       <div class="grid2">
         <label>主催団体名<input data-bind="organizer.name" placeholder="例：中村本町商店街振興会"></label>
         <label>代表者氏名<input data-bind="organizer.representative" placeholder="例：会長　四万十 太郎"></label>
@@ -228,7 +235,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <script src="lib/ui.js"></script>
 <script src="lib/rules.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="lib/fill.js"></script>
+<script src="lib/importer.js"></script>
 <script src="map.js"></script>
 <script src="app.js"></script>
 </body>

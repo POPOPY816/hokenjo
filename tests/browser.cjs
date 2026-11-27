@@ -11,18 +11,7 @@ const OUT = process.argv[2] || path.join(ROOT, "tmp");
 const BASE = process.env.BASE_URL || "http://127.0.0.1:8080/";
 fs.mkdirSync(OUT, { recursive: true });
 
-const CDN = {
-  "pdf-lib@1.17.1/dist/pdf-lib.min.js": "node_modules/pdf-lib/dist/pdf-lib.min.js",
-  "@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js": "node_modules/@pdf-lib/fontkit/dist/fontkit.umd.min.js",
-};
-
-async function setup(ctx) {
-  await ctx.route("https://cdn.jsdelivr.net/npm/**", (route) => {
-    const key = Object.keys(CDN).find((k) => route.request().url().endsWith(k));
-    if (!key) return route.abort();
-    route.fulfill({ path: path.join(ROOT, CDN[key]), contentType: "application/javascript" });
-  });
-}
+const { routeCdn: setup } = require("./cdn.cjs");
 
 (async () => {
 const errors = [];

@@ -549,26 +549,125 @@ function saveFile() {
   return saveBlob(`${name}_${state.event.start_date || today()}.json`, blob);
 }
 
-function openFile(file) {
-  const reader = new FileReader();
-  reader.onload = async () => {
+// ---------------------------------------------------------------- インポート（読み込み）
+
+const { importer } = window.Hokenjo;
+const extOf = (name) => (name.toLowerCase().match(/\.([a-z0-9]+)$/) || [])[1] || "";
+const readBytes = (file) => file.arrayBuffer().then((b) => new Uint8Array(b));
+
+// 選んだファイルを種類ごとに読み、1つのデータにまとめる
+async function importFiles(fileList) {
+  const files = [...fileList];
+  if (!files.length) return;
+  const done = [], skipped = [];
+  let full = null; // このアプリの保存ファイル・PDF
+  const parts = [];
+  const sheets = [];
+
+  for (const f of files) {
+    const ext = extOf(f.name);
     try {
-      const s = normalize(JSON.parse(reader.result));
-      delete s.sample;
-      const how = await UI.choose("読み込みました。次のイベント用に日付を空にしますか？", [
-        { label: "そのまま開く", value: "keep", className: "ghost" },
-        { label: "日付を空にして使い回す", value: "reset", className: "primary" },
-      ]);
-      if (how === "reset") {
-        s.submit_date = today();
-        s.event.start_date = ""; s.event.end_date = "";
+      if (ext === "json") {
+        full = JSON.parse(await f.text());
+        done.push(`${f.name}（保存データ）`);
+      } else if (ext === "pdf") {
+        const r = await importer.fromPdf(await readBytes(f), PDFLib);
+        if (r) { full = r.data; done.push(`${f.name}（このアプリで作ったPDF）`); }
+        else skipped.push(`${f.name}：このアプリで作ったPDFではないため読み取れません。Word の届（.docx）があればそちらを選んでください`);
+      } else if (ext === "docx") {
+        const r = await importer.fromDocx(await readBytes(f), JSZip);
+        if (r.kind === "unknown") { skipped.push(`${f.name}：届・確認事項・名簿のどれか分かりませんでした`); continue; }
+        parts.push(r);
+        const what = { todoke: `届（出店者${(r.data.shops || []).length}件）`, kakunin: "確認事項", meibo: "調理従事者名簿" }[r.kind];
+        done.push(`${f.name}（${what}）`);
+      } else if (ext === "xlsx") {
+        sheets.push(f);
+      } else if (ext === "doc" || ext === "xls") {
+        skipped.push(`${f.name}：古い形式です。Word / Excel で開いて「.docx / .xlsx」で保存し直してから選んでください`);
+      } else {
+        skipped.push(`${f.name}：読み込めない種類のファイルです`);
       }
-      state = s;
-      renderAll();
-      changed();
-    } catch (e) { await UI.notify("ファイルを読み込めませんでした：" + e.message); }
-  };
-  reader.readAsText(file);
+    } catch (e) {
+      skipped.push(`${f.name}：読み込めませんでした（${e.message || e}）`);
+    }
+  }
+
+  // まとめる：保存データ／PDFがあればそれを土台に、Word の内容を上から重ねる
+  const onlySheets = !full && !parts.length;
+  let data = onlySheets ? JSON.parse(JSON.stringify(state)) : normalize(full || blankState());
+  if (!full && parts.length) data.maps = { venue: [], booths: {} };
+  for (const kind of ["todoke", "kakunin", "meibo"])
+    for (const p of parts.filter((x) => x.kind === kind)) data = importer.merge(data, p.data);
+  data = normalize(data);
+  delete data.sample;
+
+  // Excel の図は、どの図面に入れるかを選んでもらう
+  for (const f of sheets) {
+    try {
+      const r = await importer.fromXlsx(await readBytes(f), JSZip, { shops: data.shops });
+      if (!r.items.length) { skipped.push(`${f.name}：図の中に文字が見つかりませんでした`); continue; }
+      const looksVenue = /配置|会場|平面|全体/.test(f.name + r.title);
+      const choices = [
+        { label: "会場全体の平面図にする", value: "venue", className: looksVenue ? "primary" : "" },
+        ...data.shops.slice(0, 8).map((s, i) => ({ label: `${shopLabel(s, i)} のブース図にする`, value: s.id })),
+        { label: "取り込まない", value: "skip", className: "ghost" },
+      ];
+      const where = await UI.choose(`「${f.name}」（${r.title || "図"}・部品${r.items.length}個）をどの図面に入れますか？`, choices, "Excel の図");
+      if (!where || where === "skip") { skipped.push(`${f.name}：取り込みませんでした`); continue; }
+      if (where === "venue") {
+        data.maps.venue = importer.fitItems(r.items, 960, 640, data.shops);
+        done.push(`${f.name}（会場の平面図・部品${r.items.length}個）`);
+      } else {
+        data.maps.booths[where] = importer.fitItems(r.items, 600, 480, []);
+        done.push(`${f.name}（ブース図・部品${r.items.length}個）`);
+      }
+    } catch (e) {
+      skipped.push(`${f.name}：読み込めませんでした（${e.message || e}）`);
+    }
+  }
+
+  if (!done.length) {
+    await UI.notify(skipped.join("\n") || "読み込めるファイルがありませんでした", "読み込めませんでした");
+    return;
+  }
+
+  // 去年のデータなら今年用に更新するか聞く
+  let report = "";
+  const past = data.event.start_date && data.event.start_date < today();
+  if (past) {
+    const how = await UI.choose(
+      `開催日が ${data.event.start_date.replace(/-/g, "/")} の、過去のデータです。今年用に更新しますか？\n（開催日を1年後の同じ曜日にし、提出日を今日にします）`,
+      [
+        { label: "そのまま開く", value: "keep", className: "ghost" },
+        { label: "今年用に更新する", value: "roll", className: "primary" },
+      ], "読み込み");
+    if (how === "roll") {
+      const r = importer.rollForward(data, today());
+      data = r.data;
+      report = `\n\n■ 自動で変えたところ\n${r.changes.map((c) => "・" + c).join("\n")}\n\n■ 去年から変わっていないか確認してください\n${r.reviews.map((c) => "・" + c).join("\n")}`;
+    }
+  }
+
+  state = data;
+  renderAll();
+  changed();
+  const msg = `■ 読み込んだファイル\n${done.map((d) => "・" + d).join("\n")}` +
+    (skipped.length ? `\n\n■ 読み込めなかったファイル\n${skipped.map((d) => "・" + d).join("\n")}` : "") + report;
+  await UI.notify(msg, "読み込みました");
+}
+
+// ---------------------------------------------------------------- エクスポート（書き出し）
+
+async function exportMenu() {
+  const how = await UI.choose(
+    "書き出す形式を選んでください。どちらも来年「インポート」で読み込めます。",
+    [
+      { label: "キャンセル", value: "cancel", className: "ghost" },
+      { label: "データファイル（.json）", value: "json" },
+      { label: "提出用PDF（データ入り）", value: "pdf", className: "primary" },
+    ], "エクスポート");
+  if (how === "json") await saveFile();
+  if (how === "pdf") await generate(false);
 }
 
 function renderAll() {
@@ -629,12 +728,24 @@ async function init() {
   $("#btn-download").addEventListener("click", () => generate(false));
   $("#btn-preview-close").addEventListener("click", () => { $("#preview").hidden = true; });
   $("#btn-preview-save").addEventListener("click", () => generate(false));
-  $("#btn-save").addEventListener("click", saveFile);
-  $("#btn-load").addEventListener("click", () => $("#file-input").click());
-  $("#file-input").addEventListener("change", (e) => { if (e.target.files[0]) openFile(e.target.files[0]); e.target.value = ""; });
+  $("#btn-export").addEventListener("click", exportMenu);
+  $("#btn-import").addEventListener("click", () => $("#file-input").click());
+  $$("[data-import]").forEach((b) => b.addEventListener("click", () => $("#file-input").click()));
+  $("#file-input").addEventListener("change", async (e) => {
+    const files = [...e.target.files];
+    e.target.value = "";
+    await importFiles(files);
+  });
+  // ファイルをページに落としても読み込める
+  document.addEventListener("dragover", (e) => { if (e.dataTransfer?.types?.includes("Files")) e.preventDefault(); });
+  document.addEventListener("drop", (e) => {
+    if (!e.dataTransfer?.files?.length) return;
+    e.preventDefault();
+    importFiles(e.dataTransfer.files);
+  });
   $("#btn-sample-clear").addEventListener("click", startBlank);
   $("#btn-new").addEventListener("click", async () => {
-    if (!state.sample && !(await UI.confirm("入力内容を消して新しく作りますか？必要なら先に「データを保存」してください。", { ok: "消して新しく作る", danger: true }))) return;
+    if (!state.sample && !(await UI.confirm("入力内容を消して新しく作りますか？必要なら先に「エクスポート」で保存してください。", { ok: "消して新しく作る", danger: true }))) return;
     startBlank();
   });
 

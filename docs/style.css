@@ -263,3 +263,11 @@ button:focus-visible, a:focus-visible, .pill:has(input:focus-visible), .check:ha
 }
 
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+
+.banner-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.import-hint {
+  display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; justify-content: space-between;
+  padding: 12px 16px; margin-bottom: 16px; border-radius: var(--radius);
+  background: var(--accent-soft); border: 1px solid var(--accent-line);
+}
+.import-hint p { margin: 0; flex: 1 1 320px; min-width: 0; font-size: .9rem; }

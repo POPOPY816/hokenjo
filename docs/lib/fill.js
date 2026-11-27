@@ -345,6 +345,11 @@
     if (data.include_meibo) await addMeibo(out, await PDFLib.PDFDocument.load(meibo), data, W);
     out.setTitle("臨時食品調理販売届");
     out.setCreator("臨時食品調理販売届メーカー");
+    // 入力内容をPDFの中に入れておき、来年このPDFを読み込むだけで復元できるようにする
+    if (deps.embedData !== false) {
+      const { sample, ...rest } = data;
+      out.getInfoDict().set(PDFLib.PDFName.of("HokenjoData"), PDFLib.PDFHexString.fromText(JSON.stringify(rest)));
+    }
     return out.save();
   }
 
