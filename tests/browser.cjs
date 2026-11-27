@@ -46,8 +46,9 @@ await page.click('#venue-editor .map-palette >> text=手洗い場（液体石け
 await page.click('#venue-editor [data-act="rename"]');
 await page.fill("#ui-dialog-input", "入口（北側）");
 await page.click('.ui-dialog button[value="ok"]');
-const label = await page.textContent("#venue-editor .item.sel text");
-if (!label.includes("入口（北側）")) errors.push("rename failed: " + label);
+await page
+  .waitForFunction(() => document.querySelector("#venue-editor .item.sel text")?.textContent.includes("入口（北側）"), null, { timeout: 3000 })
+  .catch(async () => errors.push("rename failed: " + (await page.textContent("#venue-editor .item.sel text"))));
 
 // ブース図：1件目と3件目に標準レイアウト（描いてあれば置き換えの確認に「OK」）
 const standard = async () => {
